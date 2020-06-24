@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 
 @Component({
-  selector: 'app-donate',
+  selector: 'donate',
   templateUrl: './donate.component.html',
   styleUrls: ['./donate.component.css']
 })
