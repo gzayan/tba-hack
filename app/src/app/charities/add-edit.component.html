@@ -1,0 +1,63 @@
+<head>
+    <style>
+        .btn-primary, .btn-primary:hover, .btn-primary:active, .btn-primary:visited {
+            background-color: #1A1F71 !important;
+            border-color: #1A1F71;
+        }
+        .btn-link {
+            color: #FA9B00;
+        }
+    </style>
+</head>
+<h1 *ngIf="isAddMode">Add Charity</h1>
+<h1 *ngIf="!isAddMode">Edit Charity</h1>
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="form-row">
+        <div class="form-group col">
+            <label for="firstName">Charity Name</label>
+            <input type="text" formControlName="firstName" class="form-control" [ngClass]="{ 'is-invalid': submitted && f.firstName.errors }" />
+            <div *ngIf="submitted && f.firstName.errors" class="invalid-feedback">
+                <div *ngIf="f.firstName.errors.required">Charity Name is required</div>
+            </div>
+        </div>
+        <div class="form-group col">
+            <label for="lastName">Account Number</label>
+            <input type="text" formControlName="lastName" class="form-control" [ngClass]="{ 'is-invalid': submitted && f.lastName.errors }" />
+            <div *ngIf="submitted && f.lastName.errors" class="invalid-feedback">
+                <div *ngIf="f.lastName.errors.required">Account Number is required</div>
+            </div>
+        </div>
+    </div>
+    <div class="form-row">
+        <div class="form-group col">
+            <label for="description">Description</label>
+            <textarea class="form-control" id="description" rows="1"></textarea>
+            <div *ngIf="submitted && f.username.errors" class="invalid-feedback">
+                <div *ngIf="f.username.errors.required">Account Number is required</div>
+            </div>
+        </div>
+        <div class="form-group col">
+            <label for="logo">
+                Logo
+                <em *ngIf="!isAddMode">(Leave blank if no logo is provided)</em>
+            </label>
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <span class="input-group-text" id="inputGroupFileAddon01">Upload</span>
+              </div>
+              <div class="custom-file">
+                <input type="file" class="custom-file-input" id="inputGroupFile01"
+                  aria-describedby="inputGroupFileAddon01">
+                <label class="custom-file-label" for="inputGroupFile01">Choose file</label>
+              </div>
+            </div>
+        </div>
+    </div>
+    <div class="form-group">
+        <button [disabled]="loading" class="btn btn-primary">
+            <span *ngIf="loading" class="spinner-border spinner-border-sm mr-1"></span>
+            Save
+        </button>
+        <a routerLink="/users" class="btn btn-link">Cancel</a>
+    </div>
+</form>

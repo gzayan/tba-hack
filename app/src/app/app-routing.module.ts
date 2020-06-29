@@ -1,29 +1,26 @@
 import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
-import { LoginViewComponent } from './views/login/login.component';
-import { HomeViewComponent } from './views/home/home.component';
-import { TransferViewComponent } from './views/transfer/transfer.component';
-import { DonateViewComponent } from './views/donate/donate.component';
 
-const routes: Routes = [];
+import { HomeComponent } from './home';
+import { AuthGuard } from './_helpers';
+
+const accountModule = () => import('./account/account.module').then(x => x.AccountModule);
+const usersModule = () => import('./users/users.module').then(x => x.UsersModule);
+const charitiesModule = () => import('./charities/charities.module').then(x => x.CharitiesModule);
+
+
+const routes: Routes = [
+    { path: '', component: HomeComponent, canActivate: [AuthGuard] },
+    { path: 'users', loadChildren: usersModule, canActivate: [AuthGuard] },
+    { path: 'account', loadChildren: accountModule },
+    { path: 'charities', loadChildren: charitiesModule },
+
+    // otherwise redirect to home
+    { path: '**', redirectTo: '' }
+];
 
 @NgModule({
-  declarations: [ 
-    LoginViewComponent, HomeViewComponent, TransferViewComponent, DonateViewComponent
-  ],
-  imports: [
-    RouterModule.forRoot([
-      { path: 'login', component: LoginViewComponent },
-      { path: 'home', component: HomeViewComponent },
-      { path: 'transfer', component: TransferViewComponent },
-      { path: 'donate', component: DonateViewComponent },
-      { path: '**', redirectTo: 'login' }
-    ])
-  ],
-  exports: [
-    RouterModule,
-  ],
-  providers: [],
-
+    imports: [RouterModule.forRoot(routes)],
+    exports: [RouterModule]
 })
 export class AppRoutingModule { }

@@ -1,0 +1,22 @@
+<head>
+    <style>
+        .btn-primary, .btn-primary:hover, .btn-primary:active, .btn-primary:visited {
+            background-color: #1A1F71 !important;
+            border-color: #1A1F71;
+            margin: 10px;
+        }
+        .btn-link {
+            color: #FA9B00;
+        }
+    </style>
+</head>
+<div class="p-4">
+    <div class="container">
+        <h1>Welcome, {{user.firstName}}!</h1>
+        <p>Would you like to transfer money or donate to a charity?</p>
+        <div class="btn-toolbar">
+		    <button type="button" id="transfer" routerLink="/transfer" routerLinkActive="active" class="btn btn-primary btn-lg">Transfer</button>
+		    <button type="button" id="donate" routerLink="/donate" routerLinkActive="active" class="btn btn-primary btn-lg">Donate</button>
+		</div>
+    </div>
+</div>
