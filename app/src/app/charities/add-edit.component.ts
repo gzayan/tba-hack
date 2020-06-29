@@ -3,7 +3,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { first } from 'rxjs/operators';
 
-import { AccountService, AlertService } from '../_services';
+import { CharityService, AlertService } from '../_services';
 
 @Component({ templateUrl: 'add-edit.component.html' })
 export class AddEditComponent implements OnInit {
@@ -17,34 +17,29 @@ export class AddEditComponent implements OnInit {
         private formBuilder: FormBuilder,
         private route: ActivatedRoute,
         private router: Router,
-        private accountService: AccountService,
+        private charityService: CharityService,
         private alertService: AlertService
     ) {}
 
     ngOnInit() {
         this.id = this.route.snapshot.params['id'];
         this.isAddMode = !this.id;
-        
-        // password not required in edit mode
-        const passwordValidators = [Validators.minLength(6)];
-        if (this.isAddMode) {
-            passwordValidators.push(Validators.required);
-        }
 
         this.form = this.formBuilder.group({
-            firstName: ['', Validators.required],
-            lastName: ['', Validators.required],
-            username: ['', Validators.required],
-            password: ['', passwordValidators]
+            charityName: ['', Validators.required],
+            accountNumber: ['', Validators.required],
+            description: ['', Validators.required],
+            email: ['', Validators.required]
         });
 
         if (!this.isAddMode) {
-            this.accountService.getById(this.id)
+            this.charityService.getById(this.id)
                 .pipe(first())
                 .subscribe(x => {
-                    this.f.firstName.setValue(x.firstName);
-                    this.f.lastName.setValue(x.lastName);
-                    this.f.username.setValue(x.username);
+                    this.f.charityName.setValue(x.charityName);
+                    this.f.accountNumber.setValue(x.accountNumber);
+                    this.f.description.setValue(x.description);
+                    this.f.email.setValue(x.email);
                 });
         }
     }
@@ -58,6 +53,8 @@ export class AddEditComponent implements OnInit {
         // reset alerts on submit
         this.alertService.clear();
 
+        console.log("id after clear: ", this.id)
+
         // stop here if form is invalid
         if (this.form.invalid) {
             return;
@@ -65,18 +62,18 @@ export class AddEditComponent implements OnInit {
 
         this.loading = true;
         if (this.isAddMode) {
-            this.createUser();
+            this.createCharity();
         } else {
-            this.updateUser();
+            this.updateCharity();
         }
     }
 
-    private createUser() {
-        this.accountService.register(this.form.value)
+    private createCharity() {
+        this.charityService.register(this.form.value)
             .pipe(first())
             .subscribe(
                 data => {
-                    this.alertService.success('User added successfully', { keepAfterRouteChange: true });
+                    this.alertService.success('Charity added successfully', { keepAfterRouteChange: true });
                     this.router.navigate(['.', { relativeTo: this.route }]);
                 },
                 error => {
@@ -85,8 +82,10 @@ export class AddEditComponent implements OnInit {
                 });
     }
 
-    private updateUser() {
-        this.accountService.update(this.id, this.form.value)
+    private updateCharity() {
+        console.log("this.id ", this.id)
+        console.log("this.form.value ", this.form.value)
+        this.charityService.update(this.id, this.form.value)
             .pipe(first())
             .subscribe(
                 data => {
