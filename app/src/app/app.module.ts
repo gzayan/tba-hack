@@ -12,7 +12,7 @@ import { AppComponent } from './app.component';
 import { AlertComponent } from './_components';
 import { HomeComponent } from './home';
 import { TransferComponent } from './transfer';
-import { DonateComponent } from './donate';
+import { DonationComponent } from './donate';
 
 @NgModule({
     imports: [
@@ -26,7 +26,7 @@ import { DonateComponent } from './donate';
         AlertComponent,
         HomeComponent,
         TransferComponent,
-        DonateComponent,
+        DonationComponent,
     ],
     providers: [
         { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true },

@@ -2,6 +2,6 @@ export class Charity {
     id: string;
     charityName: string;
     accountNumber: string;
-    description: string;
+    country: string;
     email: string;
 }

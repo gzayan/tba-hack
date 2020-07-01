@@ -7,6 +7,10 @@ import { delay, mergeMap, materialize, dematerialize } from 'rxjs/operators';
 let users = JSON.parse(localStorage.getItem('users')) || [];
 // array in local storage for registered charities
 let charities = JSON.parse(localStorage.getItem('charities')) || [];
+// array in local storage for donations
+let donations = JSON.parse(localStorage.getItem('donations')) || [];
+// array in local storage for transfers
+let transfers = JSON.parse(localStorage.getItem('transfers')) || [];
 
 @Injectable()
 export class FakeBackendInterceptor implements HttpInterceptor {
@@ -44,6 +48,10 @@ export class FakeBackendInterceptor implements HttpInterceptor {
                     return updateCharity();
                 case url.match(/\/charities\/\d+$/) && method === 'DELETE':
                     return deleteCharity();
+                case url.endsWith('/donation') && method === 'POST':
+                    return makeDonation();
+                case url.endsWith('/transfer') && method === 'POST':
+                    return makeDonation();
                 default:
                     // pass through any requests not handled above
                     return next.handle(request);
@@ -51,16 +59,36 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         }
 
         // route functions
+        function makeTransfer() {
+            const transfer = body;
+            if (!users.find(x => x.email === transfer.email)) {
+                return error('User email "' + transfer.email + '" is not registered')
+            }
+            console.log(transfer);
+            transfers.push(transfer);
+            localStorage.setItem('donations', JSON.stringify(transfers));
+            return ok();
+        }
+
+        function makeDonation() {
+            const donation = body;
+            if (!charities.find(x => x.charity === donation.charity)) {
+                return error('Charity "' + donation.charity + '" is not registered')
+            }
+            console.log(donation);
+            donations.push(donation);
+            localStorage.setItem('donations', JSON.stringify(donations));
+            return ok();
+        }
 
         function authenticate() {
-            const { username, password } = body;
-            const user = users.find(x => x.username === username && x.password === password);
-            if (!user) return error('Username or password is incorrect');
+            const { email, password } = body;
+            const user = users.find(x => x.email === email && x.password === password);
+            if (!user) return error('Email or password is incorrect');
             return ok({
                 id: user.id,
-                username: user.username,
-                firstName: user.firstName,
-                lastName: user.lastName,
+                email: user.email,
+                name: user.name,
                 token: 'fake-jwt-token'
             })
         }
@@ -68,8 +96,8 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         function register() {
             const user = body
 
-            if (users.find(x => x.username === user.username)) {
-                return error('Username "' + user.username + '" is already taken')
+            if (users.find(x => x.email === user.email)) {
+                return error('Email "' + user.email + '" is already registered')
             }
 
             user.id = users.length ? Math.max(...users.map(x => x.id)) + 1 : 1;

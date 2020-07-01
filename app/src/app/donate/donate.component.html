@@ -1,10 +1,56 @@
 <div class="p-4">
     <div class="container">
-        <h1>Welcome, {{user.firstName}}!</h1>
-        <p>How much money would you like to donate?</p>
-        <div class="btn-toolbar">
-		    <button type="button" id="transfer" routerLink="/transfer" class="btn btn-primary btn-lg">Transfer</button>
-		    <button type="button" id="donate" routerLink="/donate" class="btn btn-primary btn-lg">Donate</button>
-		</div>
+        <h1>Welcome, {{user.name}}!</h1>
+		<form [formGroup]="form" (ngSubmit)="onSubmit()">
+			<p>To which charity do you want to make a donation? Search for the charity in the box and select the name.</p>
+		    <div class="form-row">
+		        <div class="form-group col">
+		            <label for="charityName">Charity Name</label>
+		            <input type="text" formControlName="charityName" class="form-control" [ngClass]="{ 'is-invalid': submitted && f.charityName.errors }"/>
+		            <div *ngIf="submitted && f.charityName.errors" class="invalid-feedback">
+		                <div *ngIf="f.charityName.errors.required">Charity Name is required</div>
+		            </div>
+		        </div>
+		        <div class="form-group col">
+		        </div>
+		    </div>
+		    <table class="table table-striped">
+			    <thead>
+			        <tr>
+			            <th style="width: 60%">Charity Name</th>
+			            <th style="width: 40%">Country</th>
+			        </tr>
+			    </thead>
+			    <tbody>
+			        <tr *ngFor="let charity of charities">
+			            <td>{{charity.charityName}}</td>
+			            <td>{{charity.country}}</td>
+			        </tr>
+			        <tr *ngIf="!charities">
+			            <td colspan="4" class="text-center">
+			                <span class="spinner-border spinner-border-lg align-center"></span>
+			            </td>
+			        </tr>
+			    </tbody>
+			</table>
+		    <p>How much money would you like to donate? Type the amount in the box.</p>
+			<div class="form-row">
+				<div class="form-group col">
+					<label for="amount">Amount</label>
+			        <input type="text" formControlName="amount" class="form-control" [ngClass]="{ 'is-invalid': submitted && f.amount.errors }" />
+			        <div *ngIf="submitted && f.amount.errors" class="invalid-feedback">
+			            <div *ngIf="f.amount.errors.required">Amount is required</div>
+			        </div>
+			    </div>
+			    <div class="form-group col">
+			    </div>
+		    </div>
+		    <div class="form-group">
+		        <button routerLink="/donate" [disabled]="loading" class="btn btn-primary">
+		            <span *ngIf="loading" class="spinner-border spinner-border-sm mr-1"></span>
+		            Submit
+		        </button>
+		    </div>
+		</form>
     </div>
 </div>

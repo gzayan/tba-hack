@@ -28,7 +28,7 @@ export class AddEditComponent implements OnInit {
         this.form = this.formBuilder.group({
             charityName: ['', Validators.required],
             accountNumber: ['', Validators.required],
-            description: ['', Validators.required],
+            country: ['', Validators.required],
             email: ['', Validators.required]
         });
 
@@ -38,7 +38,7 @@ export class AddEditComponent implements OnInit {
                 .subscribe(x => {
                     this.f.charityName.setValue(x.charityName);
                     this.f.accountNumber.setValue(x.accountNumber);
-                    this.f.description.setValue(x.description);
+                    this.f.country.setValue(x.country);
                     this.f.email.setValue(x.email);
                 });
         }
@@ -52,8 +52,6 @@ export class AddEditComponent implements OnInit {
 
         // reset alerts on submit
         this.alertService.clear();
-
-        console.log("id after clear: ", this.id)
 
         // stop here if form is invalid
         if (this.form.invalid) {
@@ -83,8 +81,6 @@ export class AddEditComponent implements OnInit {
     }
 
     private updateCharity() {
-        console.log("this.id ", this.id)
-        console.log("this.form.value ", this.form.value)
         this.charityService.update(this.id, this.form.value)
             .pipe(first())
             .subscribe(
