@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 
 import { DonateRoutingModule } from './donate-routing.module';
 import { LayoutComponent } from './layout.component';
+import { DonationComponent } from './donate.component';
 
 
 @NgModule({
@@ -13,7 +14,8 @@ import { LayoutComponent } from './layout.component';
         DonateRoutingModule
     ],
     declarations: [
-        LayoutComponent
+        LayoutComponent,
+        DonationComponent
     ]
 })
 export class DonateModule { }

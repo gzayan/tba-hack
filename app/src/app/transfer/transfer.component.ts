@@ -10,7 +10,7 @@ import { CharityService, AccountService, AlertService , TransferService } from '
 export class TransferComponent {
     form: FormGroup;
     user: User;
-    charities = null;
+    users = null;
     submitted = false;
     loading = false;
 
@@ -27,9 +27,9 @@ export class TransferComponent {
     }
 
     ngOnInit() {
-    	this.charityService.getAll()
+    	this.accountService.getAll()
             .pipe(first())
-            .subscribe(charities => this.charities = charities);
+            .subscribe(users => this.users = users);
 
         this.form = this.formBuilder.group({
             email: ['', Validators.required],
@@ -58,7 +58,7 @@ export class TransferComponent {
             .subscribe(
                 data => {
                     this.alertService.success('Transfer successful', { keepAfterRouteChange: true });
-                    this.router.navigate(['.', { relativeTo: this.route }]);
+                    this.router.navigate(['/']);
                 },
                 error => {
                     this.alertService.error(error);
