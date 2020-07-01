@@ -2,9 +2,9 @@
 <nav class="navbar navbar-expand navbar-dark" style="background-color: #1A1F71;" *ngIf="user">
     <div class="navbar-nav">
         <a class="nav-item nav-link" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Home</a>
-        <a class="nav-item nav-link" routerLink="/users" routerLinkActive="active">Users</a>
         <a class="nav-item nav-link" routerLink="/transfer" routerLinkActive="active">Transfer</a>
-        <a class="nav-item nav-link" routerLink="/donate" routerLinkActive="active">Donate</a>
+        <a class="nav-item nav-link" routerLink="/donate" routerLinkActive="active">Donate</a>        
+        <a class="nav-item nav-link" routerLink="/users" routerLinkActive="active">Users</a>
         <a class="nav-item nav-link" routerLink="/charities" routerLinkActive="active">Charities</a>
         <a class="nav-item nav-link" (click)="logout()">Logout</a>
     </div>
@@ -14,4 +14,8 @@
 <div class="app-container" [ngClass]="{ 'bg-light': user }">
     <alert></alert>
     <router-outlet></router-outlet>
+</div>
+
+<div class="text-center mt-4">
+    Developed by: Dan Constantinescu, Apurv Goel, Rishi Kavikondala, Vishal Ramesh, and Gillian Zayan
 </div>
