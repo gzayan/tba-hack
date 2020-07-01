@@ -1,0 +1,48 @@
+CREATE TABLE CURRENCY (
+    country VARCHAR(255) NOT NULL PRIMARY KEY,
+    currency_code VARCHAR(255) NOT NULL
+);
+
+INSERT INTO CURRENCY (country, currency_code)
+VALUES
+('America', 'USD'),
+('Canada', 'CAD'),
+('Thailand', 'THB'),
+('Europe', 'EUR');
+
+CREATE TABLE USERS (
+    userId VARCHAR(255) NOT NULL PRIMARY KEY,
+    user_name VARCHAR(255) NOT NULL,
+    password VARCHAR(500) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    country VARCHAR(255) NOT NULL,
+    acc_num VARCHAR(16) NOT NULL,
+    FOREIGN KEY (country) REFERENCES CURRENCY(country) ON DELETE CASCADE
+);
+
+CREATE TABLE CHARITIES (
+    charityId VARCHAR(255) NOT NULL PRIMARY KEY,
+    charityName VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    country VARCHAR(255) NOT NULL,
+    acc_num VARCHAR(16) NOT NULL,
+    FOREIGN KEY (country) REFERENCES CURRENCY(country) ON DELETE CASCADE
+);
+
+CREATE TABLE TRANSFERS (
+    transId int AUTO_INCREMENT PRIMARY KEY,
+    user_one VARCHAR(255) NOT NULL,
+    user_two VARCHAR(255) NOT NULL,
+    transferAmount int NOT NULL,
+    FOREIGN KEY (user_one) REFERENCES USERS(userId) ON DELETE CASCADE,
+    FOREIGN KEY (user_two) REFERENCES USERS(userId) ON DELETE CASCADE
+);
+
+CREATE TABLE DONATIONS (
+    transId int AUTO_INCREMENT PRIMARY KEY,
+    userId VARCHAR(255) NOT NULL,
+    charity_id VARCHAR(255) NOT NULL,
+    transferAmount int NOT NULL,
+    FOREIGN KEY (userId) REFERENCES USERS(userId) ON DELETE CASCADE,
+    FOREIGN KEY (charity_id) REFERENCES CHARITIES(charityId) ON DELETE CASCADE
+);
