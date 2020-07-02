@@ -51,7 +51,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
                 case url.endsWith('/donation') && method === 'POST':
                     return makeDonation();
                 case url.endsWith('/transfer') && method === 'POST':
-                    return makeDonation();
+                    return makeTransfer();
                 default:
                     // pass through any requests not handled above
                     return next.handle(request);
@@ -60,6 +60,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
 
         // route functions
         function makeTransfer() {
+            console.log('Fake Backend');
             const transfer = body;
             if (!users.find(x => x.email === transfer.email)) {
                 return error('User email "' + transfer.email + '" is not registered')

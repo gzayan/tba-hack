@@ -1,5 +1,5 @@
 const LocalStrategy = require('passport-local').Strategy;
-const bcrypt = require('bcrypt');
+//const bcrypt = require('bcrypt');
 const pool = require('./pool.js');
 
 function initialize(passport) {
@@ -48,6 +48,24 @@ function findUserByEmail(email) {
 function findUserById(id) {
     return new Promise((resolve, reject) => {
         const sql = "SELECT * FROM users WHERE userId = '{}'".format(id);
+        pool.getConnection(function(err, connection) {
+            if(err) throw err;
+            connection.query(sql, function(err, results, fields) {
+                if(err) throw err;
+                if(Object.keys(results).length > 0) {
+                    resolve(results[0]);
+                } else {
+                    resolve(null);
+                }
+                connection.destroy();
+            })
+        });
+    })
+}
+
+function findCurrencyByCountry(country) {
+    return new Promise((resolve, reject) => {
+        const sql = "SELECT * FROM currency WHERE country = '{}'".format(country);
         pool.getConnection(function(err, connection) {
             if(err) throw err;
             connection.query(sql, function(err, results, fields) {
