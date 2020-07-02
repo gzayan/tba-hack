@@ -5,8 +5,15 @@ const flash = require('express-flash');
 const session = require('express-session');
 const MemoryStore = require('memorystore')(session); // https://www.npmjs.com/package/memorystore
 const methodOverride = require('method-override');
+const mysql = require('mysql');
+const fs = require('fs');
 
 const app = express();
+
+// for charities
+const bodyParser = require('body-parser');
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 
 const initializePassport = require('./passport-config');
 initializePassport(passport);
@@ -29,6 +36,19 @@ app.use(methodOverride('_method'));
 
 const pool = require('./pool.js'); // database configuration
 
+// seperate for charities
+const conn = mysql.createConnection({
+    host: 'db-mysql-tbahack-do-user-7692454-0.a.db.ondigitalocean.com',
+    user: 'doadmin',
+    password: 'vhm7v4y5awsdlgds',
+    port: 25060,
+    database: 'defaultdb',
+    ssl: {
+        rejectUnauthorized: false,
+        cert: fs.readFileSync('./ca-certificate.crt')
+    }
+});
+
 app.get('/', checkAuthenticated, (req, res) => {
     res.render('index.ejs', {
         user_name: req.user.user_name,
@@ -42,17 +62,22 @@ app.get('/login', checkNotAuthenticated, (req, res) => {
     res.render('login.ejs');
 })
 
-app.post('/login', checkNotAuthenticated, passport.authenticate('local', {
-    successRedirect: '/',
-    failureRedirect: '/login',
-    failureFlash: true
-}))
+app.post('/users/authenticate', checkNotAuthenticated, (req, res) => {
+    passport.authenticate('local', {
+        successRedirect: '/',
+        failureRedirect: '/login',
+        failureFlash: true
+    });
+    // console.log(req.body.email);
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end(JSON.stringify("Login works"));
+})
 
 app.get('/register', checkNotAuthenticated, (req, res) => {
     res.render('register.ejs');
 })
 
-app.post('/register', checkNotAuthenticated, async (req, res) => {
+app.post('/users/register', checkNotAuthenticated, async (req, res) => {
     try {
         const countryMap = new Map([
             ['USD', 'America'],
@@ -60,28 +85,37 @@ app.post('/register', checkNotAuthenticated, async (req, res) => {
             ['THB', 'Thailand'],
             ['EUR', 'Europe']
         ]);
-        if(countryMap.get(req.body.currencycode) == undefined || // incorrect country code
-            await emailAlreadyExists(req.body.email) || // email already exists
-            req.body.accountnumber.length != 16) { // incorrect length for account number
-            res.redirect('/register'); // these three errors just redirect to the register view
-        } else {
+        if(countryMap.get(req.body.country) == undefined) { // incorrect country code
+            console.log("Undefined currency code");
+            // res.redirect('/register');
+        } 
+        if(await emailAlreadyExists(req.body.email)) { // email already exists
+            console.log("Email already exists");
+            // res.redirect('/register');
+        } 
+        if(req.body.accountNumber.length != 16) { // incorrect length for account number
+            console.log("Incorrect acc_num length");
+            // res.redirect('/register');
+        }
+        else {
             const hashedPassword = await bcrypt.hash(req.body.password, 10);
             const registrationID = Date.now().toString();
-            var sql = "INSERT INTO USERS (userID, user_name, password, email, country, acc_num) VALUES ('{}', '{}', '{}', '{}', '{}', '{}');".format(
+            var sql = "INSERT INTO USERS (userID, user_name, password, email, country, acc_num) VALUES ('{}', '{}', '{}', '{}', '{}', '{}')".format(
                 registrationID,
                 req.body.name,
                 hashedPassword,
                 req.body.email,
-                countryMap.get(req.body.currencycode),
-                req.body.accountnumber
+                countryMap.get(req.body.country),
+                req.body.accountNumber
             );
-            // console.log(sql);
             const newUser = await insertNewUser(sql);
-            res.redirect('/login');
+            res.writeHead(200, { 'Content-Type': 'text/plain' });
+            res.end(JSON.stringify("register works"));
         }
     } catch(err) {
+        console.log("It's in the try catch");
         console.log(err);
-        res.redirect('/register');
+        // res.redirect('/register');
     }
 })
 
@@ -98,7 +132,7 @@ app.post('/deleteaccount', async (req, res) => {
 
 function emailAlreadyExists(email) {
     return new Promise((resolve, reject) => {
-        const exists = "SELECT COUNT(*) AS count FROM users WHERE email = '{}'".format(email);
+        const exists = "SELECT COUNT(*) AS count FROM USERS WHERE email = '{}'".format(email);
         pool.getConnection(function(err, connection) {
             if(err) throw err;
             connection.query(exists, function(err, results, fields) {
@@ -161,4 +195,88 @@ String.prototype.format = function () {
     });
 };
 
-app.listen(process.env.PORT || 5000);
+const getCharities = 'SELECT * FROM CHARITIES';
+conn.connect((err) => {
+    if (err) {
+        throw err;
+    }
+    console.log("Connected to the mysql server!");
+});
+
+app.get('/charities/:id', function (req, res) {
+    var id = req.params.id;
+    conn.query(getCharities + " WHERE charityId = '" + id + "'", function (err, result, fields) {
+        if (err) throw err;
+        //console.log(result);
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end(JSON.stringify(result));
+    });
+});
+
+app.get('/users/:id', function (req, res) {
+    var id = req.params.id;
+    conn.query("SELECT user_name AS name, email, country FROM USERS" + " WHERE userId = '" + id + "'", function (err, result, fields) {
+        if (err) throw err;
+        //console.log(result);
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end(JSON.stringify(result));
+    });
+});
+
+/**
+ *   id: string;
+    charityName: string;
+    accountNumber: string;
+    country: string;
+    email: string;
+ */
+app.post('/charities/register', function (req, res) {
+    //var id = req.body;
+    var name = req.body.charityName;
+    var accountNumber = req.body.accountNumber;;
+    var country = req.body.country;;
+    var email = req.body.email;;
+    console.log(name);
+
+    conn.query("INSERT INTO CHARITIES VALUES ('" + email + "' , '" +
+        name + "' , '" + email + "' , '" + country + "', '" + accountNumber + "' ) ", function (err, result, fields) {
+            if (err) throw err;
+            //console.log(result);
+            res.writeHead(200, { 'Content-Type': 'text/plain' });
+            res.end(JSON.stringify(result));
+        });
+
+});
+
+app.delete('/charities/:id', function (req, res) {
+    var id = req.params.id;
+    conn.query(+ "DELETE FROM CHARITIES WHERE charityId = '" + id + "'", function (err, result, fields) {
+        if (err) throw err;
+        //console.log(result);
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        //res.end(JSON.stringify(result));
+    });
+});
+
+app.get('/charities', (req, res) => {
+    console.log('Got For charities:', req.body);
+    conn.query(getCharities, function (err, result, fields) {
+        if (err) throw err;
+        //console.log(result);
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end(JSON.stringify(result));
+    });
+});
+
+app.get('/users', (req, res) => {
+    console.log('Got For users:', req.body);
+    conn.query("SELECT user_name AS name, email, country FROM USERS", function (err, result, fields) {
+        if (err) throw err;
+        //console.log(result);
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        console.log(JSON.stringify(result));
+        res.end(JSON.stringify(result));
+    });
+});
+
+app.listen(process.env.PORT || 4000);

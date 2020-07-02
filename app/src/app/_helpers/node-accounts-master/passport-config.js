@@ -4,7 +4,6 @@ const pool = require('./pool.js');
 
 function initialize(passport) {
     const authenticateUser = async (email, password, done) => {
-        // const user = getUserByEmail(email);
         const user = await findUserByEmail(email);
         if (user == null) {
             return done(null, false, { message: 'No user with that email' });
@@ -30,7 +29,7 @@ function initialize(passport) {
 
 function findUserByEmail(email) {
     return new Promise((resolve, reject) => {
-        const sql = "SELECT * FROM users WHERE email = '{}'".format(email);
+        const sql = "SELECT * FROM USERS WHERE email = '{}'".format(email);
         pool.getConnection(function(err, connection) {
             if(err) throw err;
             connection.query(sql, function(err, results, fields) {
@@ -47,7 +46,7 @@ function findUserByEmail(email) {
 
 function findUserById(id) {
     return new Promise((resolve, reject) => {
-        const sql = "SELECT * FROM users WHERE userId = '{}'".format(id);
+        const sql = "SELECT * FROM USERS WHERE userId = '{}'".format(id);
         pool.getConnection(function(err, connection) {
             if(err) throw err;
             connection.query(sql, function(err, results, fields) {
