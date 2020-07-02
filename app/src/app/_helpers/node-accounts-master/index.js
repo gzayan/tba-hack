@@ -1,6 +1,6 @@
 const express = require('express');
 const mysql = require('mysql');
-// const bcrypt = require('bcrypt');
+const bcrypt = require('bcrypt');
 const passport = require('passport');
 const flash = require('express-flash');
 const session = require('express-session');
