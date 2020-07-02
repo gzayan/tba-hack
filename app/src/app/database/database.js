@@ -1,17 +1,22 @@
 const mysql = require('mysql');
+const fs = require('fs');
 
-const pool = mysql.createPool({
-    // host: 'localhost',
-    // user: 'root',
-    // password: 'sqldatabase',
-    // database: 'charityDb',
-    // port: 3306
-    
+const conn = mysql.createConnection({
     host: 'db-mysql-tbahack-do-user-7692454-0.a.db.ondigitalocean.com',
     user: 'doadmin',
     password: 'vhm7v4y5awsdlgds',
     port: 25060,
-    database: 'defaultdb'
+    database: 'defaultdb',
+    ssl: {
+        rejectUnauthorized : false,
+        cert : fs.readFileSync('./ca-certificate.crt')
+    }
 });
 
-module.exports = pool;
+conn.connect((err) => {
+    if (err) {
+        throw err;
+    }
+    console.log("Connected to the mysql server!");
+
+});

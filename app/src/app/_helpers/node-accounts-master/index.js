@@ -20,6 +20,10 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
+// for charities
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+
 const initializePassport = require('./passport-config');
 initializePassport(passport);
 
@@ -35,13 +39,6 @@ const conn = mysql.createConnection({
     }  
 });
 
-conn.connect((err) => {
-    if (err) {
-        throw err;
-    }
-    console.log("Connected to the mysql server!");
-
-});
 
 app.set('view-engine', 'ejs');
 app.use(express.urlencoded({ extended: false }));
@@ -74,17 +71,22 @@ app.get('/login', checkNotAuthenticated, (req, res) => {
     res.render('login.ejs');
 })
 
-app.post('/login', checkNotAuthenticated, passport.authenticate('local', {
-    successRedirect: '/',
-    failureRedirect: '/login',
-    failureFlash: true
-}))
+app.post('/users/authenticate', checkNotAuthenticated, (req, res) => {
+    passport.authenticate('local', {
+        successRedirect: '/',
+        failureRedirect: '/login',
+        failureFlash: true
+    });
+    // console.log(req.body.email);
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end(JSON.stringify("Login works"));
+})
 
 app.get('/register', checkNotAuthenticated, (req, res) => {
     res.render('register.ejs');
 })
 
-app.post('/register', checkNotAuthenticated, async (req, res) => {
+app.post('/users/register', checkNotAuthenticated, async (req, res) => {
     try {
         const countryMap = new Map([
             ['USD', 'America'],
@@ -92,28 +94,37 @@ app.post('/register', checkNotAuthenticated, async (req, res) => {
             ['THB', 'Thailand'],
             ['EUR', 'Europe']
         ]);
-        if(countryMap.get(req.body.currencycode) == undefined || // incorrect country code
-            await emailAlreadyExists(req.body.email) || // email already exists
-            req.body.accountnumber.length != 16) { // incorrect length for account number
-            res.redirect('/register'); // these three errors just redirect to the register view
-        } else {
+        if(countryMap.get(req.body.country) == undefined) { // incorrect country code
+            console.log("Undefined currency code");
+            // res.redirect('/register');
+        } 
+        if(await emailAlreadyExists(req.body.email)) { // email already exists
+            console.log("Email already exists");
+            // res.redirect('/register');
+        } 
+        if(req.body.accountNumber.length != 16) { // incorrect length for account number
+            console.log("Incorrect acc_num length");
+            // res.redirect('/register');
+        }
+        else {
             const hashedPassword = await bcrypt.hash(req.body.password, 10);
             const registrationID = Date.now().toString();
-            var sql = "INSERT INTO USERS (userID, user_name, password, email, country, acc_num) VALUES ('{}', '{}', '{}', '{}', '{}', '{}');".format(
+            var sql = "INSERT INTO USERS (userID, user_name, password, email, country, acc_num) VALUES ('{}', '{}', '{}', '{}', '{}', '{}')".format(
                 registrationID,
                 req.body.name,
                 hashedPassword,
                 req.body.email,
-                countryMap.get(req.body.currencycode),
-                req.body.accountnumber
+                countryMap.get(req.body.country),
+                req.body.accountNumber
             );
-            // console.log(sql);
             const newUser = await insertNewUser(sql);
-            res.redirect('/login');
+            res.writeHead(200, { 'Content-Type': 'text/plain' });
+            res.end(JSON.stringify("register works"));
         }
     } catch(err) {
+        console.log("It's in the try catch");
         console.log(err);
-        res.redirect('/register');
+        // res.redirect('/register');
     }
 })
 
@@ -131,17 +142,18 @@ app.post('/deleteaccount', async (req, res) => {
 // STILL NEEDS TESTING
 // Transfer money from one account to another.
 app.post('/transfer', async (req, res) => {
-    const bodySchema = {
-        email: Joi.string().required(),
-        amount: Joi.string().required()
-    };
-    if (!validateBody(req.body, bodySchema, req, res)) {
-        return;
-    }
-    console.log("Endpoint reached");
-    var sender = await findUserbyId(req.user.userId); // Idk if this works lol
-    var recipient = await findUserbyEmail(req.body.email);
-
+    console.log("Test");
+    // const bodySchema = {
+    //     email: Joi.string().required(),
+    //     amount: Joi.string().required()
+    // };
+    // if (!validateBody(req.body, bodySchema, req, res)) {
+    //     return;
+    // }
+    console.log(req.body);
+    var sender = await findUserById(req.body.user); // Idk if this works lol
+    var recipient = await findUserByEmail(req.body.email);
+    console.log(sender);
     if (sender == null || recipient == null) {
         res.send({
             success: false,
@@ -160,12 +172,13 @@ app.post('/transfer', async (req, res) => {
     var params = {};
     params.senderAccount = sender.acc_num;
     params.amount = req.body.amount;
+    var senderCountry = sender.country;
     params.senderCurrencyCode = await findCurrencyByCountry(senderCountry).currency_code;
     params.recipientPrimaryAccountNumber = recipient.acc_num;
     params.senderName = sender.user_name;
     params.recipientName = recipient.user_name;
 
-    if (senderCountry != recipientCountry) { // TODO: Double check this w/ Vishal
+    if (senderCountry != recipient.country) { // TODO: Double check this w/ Vishal
         params.foreignExchangeFeeTransaction = Math.floor((Math.random() * 10) + 1);
     } else {
         params.foreignExchangeFeeTransaction = 0;
@@ -175,20 +188,18 @@ app.post('/transfer', async (req, res) => {
     transfer(params);
     
     var sql = "INSERT INTO TRANSFERS (user_one, user_two, transferAmount) VALUES ('{}', '{}', '{}');".format(
-        req.user.userId,
-        req.body.recipientUserId,
+        sender.user,
+        recipient.user,
         req.body.amount,
     );
     await insertNewUser(sql);
-    res.send({
-        success: true,
-        message: 'Funds successfully transferred'
-    });
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end(JSON.stringify("register works"));
 })
 
 function emailAlreadyExists(email) {
     return new Promise((resolve, reject) => {
-        const exists = "SELECT COUNT(*) AS count FROM users WHERE email = '{}'".format(email);
+        const exists = "SELECT COUNT(*) AS count FROM USERS WHERE email = '{}'".format(email);
         pool.getConnection(function(err, connection) {
             if(err) throw err;
             connection.query(exists, function(err, results, fields) {
@@ -243,19 +254,20 @@ function transfer(params) {
                 }
             })
             .catch(function(error) {
-                console.log(error);
+        
+                console.log("For push" + JSON.stringify(error));
             });
         }
     })
     .catch(function(error) {
-        console.log(error);
+        console.log("For pull" + JSON.stringify(error) );
     });
 }
 
 // Returns full payload of params for funds transfer api
 function getPullParameters(params) {
     var parameters = {
-        "x-client-transaction-id": "user_one",
+        "x-client-transaction-id": "Dan" + Date.now(),
         "Accept": "application/json",
         "Content-Type": "application/json"
     };
@@ -279,7 +291,7 @@ function getPullParameters(params) {
         },
         "acquiringBin": "408999",
         "systemsTraceAuditNumber": "451001",
-        // "nationalReimbursementFee": "11.22",
+        "nationalReimbursementFee": "11.22",
         "senderCurrencyCode": params.senderCurrencyCode,
         "cavv": "0700100038238906000013405823891061668252",
         "foreignExchangeFeeTransaction": params.foreignExchangeFeeTransaction,
@@ -288,7 +300,7 @@ function getPullParameters(params) {
             "street": "XYZ St"
         },
         "senderPrimaryAccountNumber": params.senderAccount,
-        //"surcharge": "11.99"
+        "surcharge": "11.99"
     };
     parameters.payload.localTransactionDateTime = Date.now();
 
@@ -380,5 +392,143 @@ String.prototype.format = function () {
     });
 };
 
-app.listen(4000);
-console.log("Listening on port 4000");
+const getCharities = 'SELECT * FROM CHARITIES';
+conn.connect((err) => {
+    if (err) {
+        throw err;
+    }
+    console.log("Connected to the mysql server!");
+});
+
+app.get('/charities/:id', function (req, res) {
+    var id = req.params.id;
+    conn.query(getCharities + " WHERE charityId = '" + id + "'", function (err, result, fields) {
+        if (err) throw err;
+        //console.log(result);
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end(JSON.stringify(result));
+    });
+});
+
+app.get('/users/:id', function (req, res) {
+    var id = req.params.id;
+    conn.query("SELECT user_name AS name, email, country FROM USERS" + " WHERE userId = '" + id + "'", function (err, result, fields) {
+        if (err) throw err;
+        //console.log(result);
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end(JSON.stringify(result));
+    });
+});
+
+/**
+ *   id: string;
+    charityName: string;
+    accountNumber: string;
+    country: string;
+    email: string;
+ */
+app.post('/charities/register', function (req, res) {
+    //var id = req.body;
+    var name = req.body.charityName;
+    var accountNumber = req.body.accountNumber;;
+    var country = req.body.country;;
+    var email = req.body.email;;
+    console.log(name);
+
+    conn.query("INSERT INTO CHARITIES VALUES ('" + email + "' , '" +
+        name + "' , '" + email + "' , '" + country + "', '" + accountNumber + "' ) ", function (err, result, fields) {
+            if (err) throw err;
+            //console.log(result);
+            res.writeHead(200, { 'Content-Type': 'text/plain' });
+            res.end(JSON.stringify(result));
+        });
+
+});
+
+app.delete('/charities/:id', function (req, res) {
+    var id = req.params.id;
+    conn.query(+ "DELETE FROM CHARITIES WHERE charityId = '" + id + "'", function (err, result, fields) {
+        if (err) throw err;
+        //console.log(result);
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        //res.end(JSON.stringify(result));
+    });
+});
+
+app.get('/charities', (req, res) => {
+    console.log('Got For charities:', req.body);
+    conn.query(getCharities, function (err, result, fields) {
+        if (err) throw err;
+        //console.log(result);
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end(JSON.stringify(result));
+    });
+});
+
+app.get('/users', (req, res) => {
+    console.log('Got For users:', req.body);
+    conn.query("SELECT user_name AS name, email, country FROM USERS", function (err, result, fields) {
+        if (err) throw err;
+        //console.log(result);
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        console.log(JSON.stringify(result));
+        res.end(JSON.stringify(result));
+    });
+});
+
+function findUserById(id) {
+    return new Promise((resolve, reject) => {
+        const sql = "SELECT * FROM USERS WHERE userId = '{}'".format(id);
+        pool.getConnection(function(err, connection) {
+            if(err) throw err;
+            connection.query(sql, function(err, results, fields) {
+                if(err) throw err;
+                if(Object.keys(results).length > 0) {
+                    resolve(results[0]);
+                } else {
+                    resolve(null);
+                }
+                connection.destroy();
+            })
+        });
+    })
+}
+
+function findUserByEmail(email) {
+    return new Promise((resolve, reject) => {
+        const sql = "SELECT * FROM USERS WHERE email = '{}'".format(email);
+        pool.getConnection(function(err, connection) {
+            if(err) throw err;
+            connection.query(sql, function(err, results, fields) {
+                if(Object.keys(results).length > 0) {
+                    resolve(results[0]);
+                } else {
+                    resolve(null);
+                }
+                connection.destroy();
+            });
+        });
+    });
+}
+
+function findCurrencyByCountry(country) {
+    return new Promise((resolve, reject) => {
+        const sql = "SELECT * FROM CURRENCY WHERE country = '{}'".format(country);
+        pool.getConnection(function(err, connection) {
+            if(err) throw err;
+            connection.query(sql, function(err, results, fields) {
+                if(err) throw err;
+                if(Object.keys(results).length > 0) {
+                    resolve(results[0]);
+                } else {
+                    resolve(null);
+                }
+                connection.destroy();
+            })
+        });
+    })
+}
+
+
+app.listen(process.env.PORT || 4000);
+console.log('Listening on port 4000...');
